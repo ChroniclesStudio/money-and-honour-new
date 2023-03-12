@@ -16856,8 +16856,947 @@ presentations = [
     ]),
   ]),
 
+# Arris Feudal World Map. (Based on previous work by Rubik)
+    #
+    # Uses trp_temp_array_a and trp_temp_array_b to store info about centers (feuds) and lords, stored sequentially.
+    # Search above with scripts "search_fiefs_tmp" and "search_lords_tmp" respectively.
+    # Returns indexes of results in trp_temp_array_c, number of matches in reg0
+    #
+    # Fields in trp_temp_array_a (centers):
+    #    - id overlay center
+    #    - id center
+    #    - id overlay label name center
+    #    - id overlay label owner
+    #    - id lord
+    #    - overlay center display state
+    #
+    # Fields in trp_temp_array_b (lords)
+    #     - id lord
+    #     - color lord
+    #    - id button overlay in lord list
+    #    - id item in combo box vassal (-1 if not vassal)
 
 
+    ("world_map", 0, mesh_load_window, [
+    (ti_on_presentation_load,
+      [
+        (presentation_set_duration, 999999),
+        (set_fixed_point_multiplier, 1000),
+
+      ## initialization part begin
+    
+        
+        # presentation obj: begin from top left corner
+        (assign, ":init_pos_x", 15), # init x
+        (assign, ":init_pos_y", 725), # init y
+
+        # world map
+        (assign, ":min_map_x", -200*1000),
+        (assign, ":max_map_x", 200*1000),
+        (assign, ":min_map_y", -177*1000),
+        (assign, ":max_map_y", 177*1000),
+        
+        # also begin from top left corner
+        (assign, ":init_map_x", ":min_map_x"), # init map_x
+        (assign, ":init_map_y", ":max_map_y"), # init map_y
+      
+        # move length of p_temp_party, total_cols and total_rows
+        (assign, ":party_move_length", 2*1000),
+        (store_sub, ":total_cols", ":max_map_x", ":min_map_x"),
+        (store_sub, ":total_rows", ":max_map_y", ":min_map_y"),
+        (val_div, ":total_cols", ":party_move_length"),
+        (val_div, ":total_rows", ":party_move_length"),
+      
+        # color_block_length
+        (assign, ":color_block_length", 4),
+        (store_mul, ":color_block_size", ":color_block_length", 50),
+        (position_set_x, pos2, ":color_block_size"),
+        (position_set_y, pos2, ":color_block_size"),
+    
+        (store_sub, "$N_Lords", active_npcs_end, active_npcs_begin),
+        (val_add, "$N_Lords", 1),
+        (store_sub, "$N_Centers", centers_end, centers_begin),
+        (val_add, "$N_Centers", 1),
+
+        (try_for_range, ":i", 0, 1000),
+            (troop_set_slot, "trp_temp_array_a", ":i", -1),
+            (troop_set_slot, "trp_temp_array_b", ":i", -1),
+        (try_end),
+        
+      ## initialization part end
+      
+        (assign, ":pos_x", ":init_pos_x"), # assign to cur pos_x
+        (assign, ":pos_y", ":init_pos_y"), # assign to cur pos_y
+        (assign, ":map_x", ":init_map_x"), # assign to cur map_x
+        (assign, ":map_y", ":init_map_y"), # assign to cur map_y
+        ## draw whole map
+        (try_for_range, ":unused_rows", 0, ":total_rows"),
+          (try_for_range, ":unused_cols", 0, ":total_cols"),
+            (assign, ":dest_color", 0xFFFFFF), # default
+            (position_set_x, pos3, ":map_x"),
+            (position_set_y, pos3, ":map_y"),
+            (party_set_position, "p_temp_party", pos3),
+            (party_get_current_terrain, ":current_terrain", "p_temp_party"),
+            (try_begin),
+              (eq, ":current_terrain", rt_water),
+              (assign, ":dest_color", 0x0066FF), # default
+            (else_try),
+              (call_script, "script_get_closest_center", "p_temp_party"),
+              (assign, ":nearest_center", reg0),
+              (try_begin),
+                (gt, ":nearest_center", -1),
+                (store_faction_of_party, ":center_faction", ":nearest_center"),
+                (is_between, ":center_faction", kingdoms_begin, kingdoms_end),
+                (faction_get_color, ":dest_color", ":center_faction"),
+              (try_end),
+            (try_end),
+            (create_mesh_overlay, reg0, "mesh_white_plane"),
+            (overlay_set_color, reg0, ":dest_color"),
+            (position_set_x, pos1, ":pos_x"),
+            (position_set_y, pos1, ":pos_y"),
+            (overlay_set_position, reg0, pos1),
+            (overlay_set_size, reg0, pos2), # color block size
+          
+            ## draw borderlines begin [optional]
+            # borderlines length and whidth
+            (store_add, ":line_length", ":color_block_size", 1*50),
+            (assign, ":line_whidth", 1*50),
+            # find bound_center
+            (try_begin),
+              (this_or_next|party_slot_eq, ":nearest_center", slot_party_type, spt_town),
+              (party_slot_eq, ":nearest_center", slot_party_type, spt_castle),
+              (assign, ":bound_center", ":nearest_center"), # itself
+            (else_try),
+              (party_slot_eq, ":nearest_center", slot_party_type, spt_village),
+              (party_get_slot, ":bound_center", ":nearest_center", slot_village_bound_center),
+            (try_end),
+            # compare with the left side color block
+            (try_begin),
+              (store_sub, ":map_x_2", ":map_x", ":party_move_length"),
+              (assign, ":map_y_2", ":map_y"),
+              (position_set_x, pos4, ":map_x_2"),
+              (position_set_y, pos4, ":map_y_2"),
+              (party_set_position, "p_temp_party", pos4),
+              (party_get_current_terrain, ":current_terrain_2", "p_temp_party"),
+              (try_begin),
+                (assign, ":continue", 0),
+                (try_begin),
+                  (neq, ":current_terrain", rt_water),
+                  (neq, ":current_terrain_2", rt_water),
+                  (call_script, "script_get_closest_center", "p_temp_party"),
+                  (assign, ":nearest_center_2", reg0),
+                  (try_begin),
+                    (gt, ":nearest_center_2", -1),
+                    (try_begin),
+                      (this_or_next|party_slot_eq, ":nearest_center_2", slot_party_type, spt_town),
+                      (party_slot_eq, ":nearest_center_2", slot_party_type, spt_castle),
+                      (assign, ":bound_center_2", ":nearest_center_2"), # itself
+                    (else_try),
+                      (party_slot_eq, ":nearest_center_2", slot_party_type, spt_village),
+                      (party_get_slot, ":bound_center_2", ":nearest_center_2", slot_village_bound_center),
+                    (try_end),
+                    (neq, ":bound_center_2", ":bound_center"),
+                    (assign, ":continue", 1),
+                  (try_end),
+                (else_try),
+                  (neq, ":current_terrain", ":current_terrain_2"),
+                  (this_or_next|eq, ":current_terrain", rt_water),
+                  (eq, ":current_terrain_2", rt_water),
+                  (assign, ":continue", 1),
+                (try_end),
+                (eq, ":continue", 1),
+                (create_mesh_overlay, reg0, "mesh_white_plane"),
+                (overlay_set_color, reg0, 0),
+                (position_set_x, pos1, ":pos_x"),
+                (position_set_y, pos1, ":pos_y"),
+                (overlay_set_position, reg0, pos1),
+                (position_set_x, pos1, ":line_whidth"),
+                (position_set_y, pos1, ":line_length"),
+                (overlay_set_size, reg0, pos1),
+              (try_end),
+            (try_end),
+            # compare with the under color block
+            (try_begin),
+              (assign, ":map_x_2", ":map_x"),
+              (store_sub, ":map_y_2", ":map_y", ":party_move_length"),
+              (position_set_x, pos4, ":map_x_2"),
+              (position_set_y, pos4, ":map_y_2"),
+              (party_set_position, "p_temp_party", pos4),
+              (party_get_current_terrain, ":current_terrain_2", "p_temp_party"),
+              (try_begin),
+                (assign, ":continue", 0),
+                (try_begin),
+                  (neq, ":current_terrain", rt_water),
+                  (neq, ":current_terrain_2", rt_water),
+                  (call_script, "script_get_closest_center", "p_temp_party"),
+                  (assign, ":nearest_center_2", reg0),
+                  (try_begin),
+                    (gt, ":nearest_center_2", -1),
+                    (try_begin),
+                      (this_or_next|party_slot_eq, ":nearest_center_2", slot_party_type, spt_town),
+                      (party_slot_eq, ":nearest_center_2", slot_party_type, spt_castle),
+                      (assign, ":bound_center_2", ":nearest_center_2"),
+                    (else_try),
+                      (party_slot_eq, ":nearest_center_2", slot_party_type, spt_village),
+                      (party_get_slot, ":bound_center_2", ":nearest_center_2", slot_village_bound_center),
+                    (try_end),
+                    (neq, ":bound_center_2", ":bound_center"),
+                    (assign, ":continue", 1),
+                  (try_end),
+                (else_try),
+                  (neq, ":current_terrain", ":current_terrain_2"),
+                  (this_or_next|eq, ":current_terrain", rt_water),
+                  (eq, ":current_terrain_2", rt_water),
+                  (assign, ":continue", 1),
+                (try_end),
+                (eq, ":continue", 1),
+                (create_mesh_overlay, reg0, "mesh_white_plane"),
+                (overlay_set_color, reg0, 0),
+                (position_set_x, pos1, ":pos_x"),
+                (position_set_y, pos1, ":pos_y"),
+                (overlay_set_position, reg0, pos1),
+                (position_set_x, pos1, ":line_length"),
+                (position_set_y, pos1, ":line_whidth"),
+                (overlay_set_size, reg0, pos1),
+              (try_end),
+            (try_end),
+            ## draw borderlines end [optional]
+          
+            # offset
+            (val_add, ":pos_x", ":color_block_length"),
+            (val_add, ":map_x", ":party_move_length"),
+          (try_end),
+          # offset
+          (assign, ":pos_x", ":init_pos_x"),
+          (val_sub, ":pos_y", ":color_block_length"),
+          (assign, ":map_x", ":init_map_x"),
+          (val_sub, ":map_y", ":party_move_length"),
+        (try_end),
+      
+        ## blocks of centers
+
+        (assign, ":slot_no", 0),
+        (try_for_range, ":center_no", centers_begin, centers_end),
+          (party_is_active, ":center_no"),
+          (party_get_position, pos4, ":center_no"),
+          (position_get_x, ":center_x", pos4),
+          (position_get_y, ":center_y", pos4),
+          (val_sub, ":center_x", ":init_map_x"),
+          (val_sub, ":center_y", ":init_map_y"),
+          (val_mul, ":center_x", ":color_block_length"),
+          (val_mul, ":center_y", ":color_block_length"),
+          (val_div, ":center_x", ":party_move_length"),
+          (val_div, ":center_y", ":party_move_length"),
+          (val_add, ":center_x", ":init_pos_x"),
+          (val_add, ":center_y", ":init_pos_y"),
+          # offset and size
+          (try_begin),
+            (party_slot_eq, ":center_no", slot_party_type, spt_town),
+            (assign, ":block_size", 20),
+          (else_try),
+            (party_slot_eq, ":center_no", slot_party_type, spt_castle),
+            (assign, ":block_size", 12),
+          (else_try),
+            (party_slot_eq, ":center_no", slot_party_type, spt_village),
+            (assign, ":block_size", 8),
+          (try_end),
+          (val_mul, ":block_size", 50),
+          # block
+          (create_image_button_overlay, reg0, "mesh_white_dot", "mesh_white_dot"),
+          (overlay_set_color, reg0, 0),
+          (position_set_x, pos1, ":center_x"),
+          (position_set_y, pos1, ":center_y"),
+          (overlay_set_position, reg0, pos1),
+          (position_set_x, pos1, ":block_size"),
+          (position_set_y, pos1, ":block_size"),
+          (overlay_set_size, reg0, pos1),
+          (troop_set_slot, "trp_temp_array_a", ":slot_no", reg0), # overlay center
+          (val_add, ":slot_no", 1),
+          (troop_set_slot, "trp_temp_array_a", ":slot_no", ":center_no"), #id center
+
+          # center name label
+          (str_store_party_name, s1, ":center_no"),
+          (create_text_overlay, reg1, s1, tf_center_justify),
+          (store_add, ":text_x", ":center_x", 0),
+          (store_add, ":text_y", ":center_y", 10),
+          (position_set_x, pos1, ":text_x"), (position_set_y, pos1, ":text_y"),
+          (overlay_set_position, reg1, pos1),
+          (overlay_set_color, reg1, 0),
+          (position_set_x, pos1, 780), (position_set_y, pos1, 780),
+          (overlay_set_size, reg1, pos1),
+          (overlay_set_display, reg1, 0),
+          (val_add, ":slot_no", 1),
+          (troop_set_slot, "trp_temp_array_a", ":slot_no", reg1), #overlay label name center
+          
+          # owner name label
+          (party_get_slot, ":lord", ":center_no", slot_town_lord),
+          (try_begin),
+            (gt, ":lord", -1),
+            (str_store_troop_name, s1, ":lord"),
+          (else_try),
+            (str_store_string, s1, "@Unassigned"),
+          (try_end),
+          (create_text_overlay, reg1, s1, tf_center_justify),
+          (store_add, ":text_x", ":center_x", 0),
+          (store_add, ":text_y", ":center_y", -25),
+          (position_set_x, pos1, ":text_x"), (position_set_y, pos1, ":text_y"),
+          (overlay_set_position, reg1, pos1),
+          (overlay_set_color, reg1, 0),
+          (position_set_x, pos1, 780), (position_set_y, pos1, 780),
+          (overlay_set_size, reg1, pos1),
+          (overlay_set_display, reg1, 0),
+          (val_add, ":slot_no", 1),
+          (troop_set_slot, "trp_temp_array_a", ":slot_no", reg1), #overlay label owner
+          # id center owner
+          (try_begin),
+            (gt, ":lord", -1),
+            (val_add, ":slot_no", 1),
+            (troop_set_slot, "trp_temp_array_a", ":slot_no", ":lord"),
+          (else_try),
+            (val_add, ":slot_no", 1),
+            (troop_set_slot, "trp_temp_array_a", ":slot_no", -1),
+          (try_end),
+          # overlay center display state
+          (val_add, ":slot_no", 1),
+          (troop_set_slot, "trp_temp_array_a", ":slot_no", 0),
+                
+          (val_add, ":slot_no", 1),
+        (try_end),
+        
+        (troop_get_slot, "$first_center_btn", "trp_temp_array_a", 0),
+        (val_sub, ":slot_no", 6),
+        (troop_get_slot, "$last_center_btn", "trp_temp_array_a", ":slot_no"),
+
+        ##end block centers
+        
+        #Color codes for lords   
+        (assign, ":indx", -1),
+        (try_for_range, ":id_npc", active_npcs_begin, active_npcs_end),
+            (store_random_in_range, ":color_lord", 0, 10000),
+            (val_mul, ":color_lord", 16777215), (val_div, ":color_lord", 10000),
+            (val_add, ":indx", 1),
+            (troop_set_slot, "trp_temp_array_b", ":indx", ":id_npc"),
+            (val_add, ":indx", 1),
+            (troop_set_slot, "trp_temp_array_b", ":indx", ":color_lord"),
+            (val_add, ":indx", 2),
+        (try_end),
+        
+        #player color
+        (store_random_in_range, ":color_lord", 0, 10000),
+        (val_mul, ":color_lord", 16777215), (val_div, ":color_lord", 10000),
+        (val_add, ":indx", 1),
+        (troop_set_slot, "trp_temp_array_b", ":indx", 0),
+        (val_add, ":indx", 1),
+        (troop_set_slot, "trp_temp_array_b", ":indx", ":color_lord"),       
+                
+        #List Lords
+        (str_clear, s0),
+        (create_text_overlay, "$list_lords", s0, tf_scrollable),
+        (position_set_x, pos1, 750), (position_set_y, pos1, 260),
+        (overlay_set_position, "$list_lords", pos1),
+        (position_set_x, pos1, 200), (position_set_y, pos1, 4100),
+        (overlay_set_size, "$list_lords", pos1),
+        (position_set_x, pos1, 200), (position_set_y, pos1, 250),
+        (overlay_set_area_size, "$list_lords", pos1),
+        (set_container_overlay, "$list_lords"),
+        (assign, ":x_pos", 160), (assign, ":y_pos", 4000),
+        #human
+        (str_store_troop_name, s0, 0),
+        (create_game_button_overlay, reg1 , "@{s0}", tf_center_justify),
+        (position_set_x, pos3, ":x_pos"), (position_set_y, pos3, ":y_pos"),
+        (overlay_set_position, reg1, pos3),
+        (position_set_x, pos3, 100), (position_set_y, pos3, 25),
+        (overlay_set_size, reg1, pos3),
+        (val_sub, ":y_pos", 25),
+        
+        (call_script, "script_search_lords_tmp", 0, 0),
+        (troop_get_slot, ":indx", "trp_temp_array_c",0),
+        (val_add, ":indx", 2),   
+        (troop_set_slot, "trp_temp_array_b",":indx", reg1),
+
+        (assign, "$first_lord_btn", reg1),
+        
+        #lords
+        (try_for_range, ":id_npc", active_npcs_begin, active_npcs_end),
+            (str_store_troop_name, s0, ":id_npc"),
+            (create_game_button_overlay, reg1 , "@{s0}", tf_center_justify),
+
+            (call_script, "script_search_lords_tmp", 0, ":id_npc"),
+            (troop_get_slot, ":indx", "trp_temp_array_c",0),           
+            (val_add, ":indx", 2),   
+            (troop_set_slot, "trp_temp_array_b",":indx", reg1),             
+            
+            (position_set_x, pos3, ":x_pos"), (position_set_y, pos3, ":y_pos"),
+            (overlay_set_position, reg1, pos3),
+            (position_set_x, pos3, 100), (position_set_y, pos3, 25),
+            (overlay_set_size, reg1, pos3),
+            (val_sub, ":y_pos", 25),
+            
+        (try_end),
+
+        (assign, "$last_lord_btn", reg1),
+        (set_container_overlay, -1),   
+        
+        #Checkbox show all unassigned
+        (create_check_box_overlay, "$chk_unassigned", "mesh_checkbox_off", "mesh_checkbox_on"),
+        (position_set_x, pos1, 825), (position_set_y, pos1, 700),
+        (overlay_set_position, "$chk_unassigned", pos1),
+        (create_text_overlay, "$chk_unassigned_lbl", "@Show unassigned"),
+        (position_set_x, pos1, 840), (position_set_y, pos1, 700),
+        (overlay_set_position, "$chk_unassigned_lbl", pos1),
+        (position_set_x, pos1, 780), (position_set_y, pos1, 780),
+        (overlay_set_size, "$chk_unassigned_lbl", pos1),
+        
+        #Show all toggle
+        (create_game_button_overlay, "$g_btn_show_toggle", "@Show All/None"),
+        (position_set_x, pos1, 900),
+        (position_set_y, pos1, 650),
+        (overlay_set_position, "$g_btn_show_toggle", pos1),   
+        (assign, "$show_toggle", 1),
+    
+        #Owner name
+        (create_text_overlay, "$lbl_name_color_lord", "@None2"),
+        (position_set_x, pos1, 825), (position_set_y, pos1, 700),
+        (overlay_set_position, "$lbl_name_color_lord", pos1),
+        (position_set_x, pos1, 780), (position_set_y, pos1, 780),
+        (overlay_set_size, "$lbl_name_color_lord", pos1),
+        (overlay_set_color, "$lbl_name_color_lord", 0xFFFFFF),
+        (overlay_set_display, "$lbl_name_color_lord", 0),
+        
+        #Custom color slider
+        (create_slider_overlay, "$slider_color", 0, 0xFFFFFF),
+        (position_set_x, pos1, 950), (position_set_y, pos1, 670),
+        (overlay_set_position, "$slider_color", pos1),   
+        (position_set_x, pos1, 600), (position_set_y, pos1, 780),
+        (overlay_set_size, "$slider_color", pos1),
+        (overlay_set_display, "$slider_color", 0),
+        
+        #End color edit
+        (create_game_button_overlay, "$btn_endcolor", "@OK"),
+        (position_set_x, pos1, 900), (position_set_y, pos1, 640),
+        (overlay_set_position, "$btn_endcolor", pos1),
+        (position_set_x, pos1, 100), (position_set_y, pos1, 25),
+        (overlay_set_size, "$btn_endcolor", pos1),
+        (overlay_set_color, "$btn_endcolor", 0xFFFFFF),   
+        (overlay_set_display, "$btn_endcolor", 0),
+
+        #faction label
+        (create_text_overlay, "$show_faction_lbl", "@Show faction:"),
+        (position_set_x, pos1, 830), (position_set_y, pos1, 590),
+        (overlay_set_position, "$show_faction_lbl", pos1),
+        (position_set_x, pos1, 780), (position_set_y, pos1, 780),
+        (overlay_set_size, "$show_faction_lbl", pos1),       
+
+        #Combo box factions (hardcoded because few)
+        (create_combo_button_overlay, "$factions"),
+        (overlay_add_item, "$factions", "@Player"),
+        (overlay_add_item, "$factions", "@Swadians"),
+        (overlay_add_item, "$factions", "@Vaegirs"),
+        (overlay_add_item, "$factions", "@Khergits"),
+        (overlay_add_item, "$factions", "@Nords"),
+        (overlay_add_item, "$factions", "@Rhodoks"),
+        (overlay_add_item, "$factions", "@Sarranids"),
+        
+        (position_set_x, pos1, 945), (position_set_y, pos1, 560),
+        (overlay_set_position, "$factions", pos1),
+        (position_set_x, pos1, 550), (position_set_y, pos1, 700),
+        (overlay_set_size, "$factions", pos1),
+        
+        #label lord to grant fief
+        (create_text_overlay, "$lbl_name_grant_lord", "@Grant fief to..."),
+        (position_set_x, pos1, 825), (position_set_y, pos1, 700),
+        (overlay_set_position, "$lbl_name_grant_lord", pos1),
+        (position_set_x, pos1, 780), (position_set_y, pos1, 780),
+        (overlay_set_size, "$lbl_name_grant_lord", pos1),
+        (overlay_set_color, "$lbl_name_grant_lord", 0xFFFFFF),
+        (overlay_set_display, "$lbl_name_grant_lord", 0),
+        
+        #combo box vassals
+        (assign, ":i", 0 ),
+
+        (create_combo_button_overlay, "$cbo_grant"),
+        
+        (try_for_range, ":id_npc", active_npcs_begin, active_npcs_end),
+            (store_troop_faction, reg0, ":id_npc"),
+            (eq, reg0, "fac_player_supporters_faction"),
+            
+            (str_store_troop_name, s0, ":id_npc"),
+            (overlay_add_item, "$cbo_grant", s0),
+            
+            (call_script, "script_search_lords_tmp", 0, ":id_npc"),
+            (troop_get_slot, ":indx", "trp_temp_array_c",0),
+            (val_add, ":indx", 3),
+            (troop_set_slot, "trp_temp_array_b", ":indx", ":i"),
+            (val_add, ":i", 1),           
+        (try_end),
+
+        (call_script, "script_search_lords_tmp", 0, 0),
+        (troop_get_slot, ":indx", "trp_temp_array_c",0),
+        (val_add, ":indx", 3),
+        (troop_set_slot, "trp_temp_array_b", ":indx", ":i"),
+        (str_store_troop_name, s0, 0),
+        (overlay_add_item, "$cbo_grant", s0),
+        (val_add, ":i", 1),   
+        (overlay_add_item, "$cbo_grant", "@None"),
+        (overlay_set_val, "$cbo_grant", ":i"),
+        (assign, "$last_indx_cbogrant", ":i"),
+
+        (position_set_x, pos1, 945), (position_set_y, pos1, 640),
+        (overlay_set_position, "$cbo_grant", pos1),
+        (position_set_x, pos1, 550), (position_set_y, pos1, 700),
+        (overlay_set_size, "$cbo_grant", pos1),
+        (overlay_set_display, "$cbo_grant", 0),
+
+        # Done
+        (create_game_button_overlay, "$g_presentation_obj_5", "@Done"),
+        (position_set_x, pos1, 900), (position_set_y, pos1, 70),
+        (overlay_set_position, "$g_presentation_obj_5", pos1),
+        
+        #Help
+        (create_button_overlay, "$g_help", "@Help"),
+        (position_set_x, pos1, 825), (position_set_y, pos1, 30),
+        (overlay_set_position, "$g_help", pos1),
+      ]),
+      (ti_on_presentation_mouse_enter_leave,
+      [
+        (store_trigger_param_1, ":object"),
+        (store_trigger_param_2, ":enter_leave"),
+      
+           (ge, ":object", "$first_center_btn"),
+        (le, ":object", "$last_center_btn"),
+      
+        # show center name, owner when mouse over it
+        (store_sub, ":display_overlay", 1, ":enter_leave"),
+        
+        (call_script, "script_search_fiefs_tmp", 0, ":object"),
+        (troop_get_slot, ":indx0", "trp_temp_array_c", 0),
+        
+        (gt, ":indx0", -1),   
+        (store_add, ":indx1", ":indx0", 2), (troop_get_slot, ":id_lbl_name", "trp_temp_array_a", ":indx1"),
+        (store_add, ":indx1", ":indx0", 3), (troop_get_slot, ":id_lbl_lord", "trp_temp_array_a", ":indx1"),
+        (overlay_set_display, ":id_lbl_name", ":display_overlay"),
+        (overlay_set_display, ":id_lbl_lord", ":display_overlay"),         
+      ]),
+ 
+    (ti_on_presentation_event_state_change,
+      [
+        (store_trigger_param_1, ":object"),
+        (store_trigger_param_2, ":value"),
+        
+        #Click on done
+        (try_begin),
+            (eq, ":object", "$g_presentation_obj_5"),
+            
+            (try_begin),
+                (eq, "$gShowFeudalMap", 1),
+                (assign, "$gShowFeudalMap", 2),
+            (try_end),
+            
+            (presentation_set_duration, 0),
+        (try_end),
+
+        #Click on center
+        (try_begin),
+
+            (ge, ":object", "$first_center_btn"),
+            (le, ":object", "$last_center_btn"),   
+            (neg | key_is_down, key_right_shift),
+            (neg | key_is_down, key_left_shift),
+            (neg | key_is_down, key_right_control),
+            (neg | key_is_down, key_left_control),
+    
+            #find lord
+            (call_script, "script_search_fiefs_tmp", 0, ":object"),
+            (troop_get_slot, ":indx0", "trp_temp_array_c", 0),    (store_add, ":indx1", ":indx0", 4),
+            (troop_get_slot, ":lord", "trp_temp_array_a", ":indx1"),
+            (store_add, ":indx1", ":indx0", 5), ( troop_get_slot, ":display_state", "trp_temp_array_a", ":indx1"),
+            
+            #find lord color
+            (try_begin),
+                (gt, ":lord", -1),
+                (call_script, "script_search_lords_tmp", 0, ":lord"),
+                (troop_get_slot, ":indx0", "trp_temp_array_c", 0),    (store_add, ":indx1", ":indx0", 1),
+                (troop_get_slot, ":color_lord", "trp_temp_array_b", ":indx1"),
+            (else_try),
+                (assign, ":color_lord", 0xFFFFFF),
+            (try_end),
+            
+            #find lord button
+            (store_add, ":indx1", ":indx0", 2),
+            (troop_get_slot, ":id_btn", "trp_temp_array_b", ":indx1"),
+            
+            #color fiefs lord
+            (call_script, "script_search_fiefs_tmp", 4, ":lord"),
+            
+            (try_for_range, ":i", 0, reg0),
+                (troop_get_slot, ":indx0", "trp_temp_array_c", ":i"),   
+                (store_add, ":indx1", ":indx0", 5),
+                (troop_get_slot, ":lord_center", "trp_temp_array_a", ":indx0"),
+                (try_begin),
+                    (eq, ":display_state", 1),
+                    (troop_set_slot,  "trp_temp_array_a", ":indx1", 0),
+                    (overlay_set_color, ":lord_center", 0),   
+                (else_try),
+                    (troop_set_slot,  "trp_temp_array_a", ":indx1", 1),
+                    (overlay_set_color, ":lord_center", ":color_lord"),                   
+                (try_end),
+            (try_end),
+            
+            #update lord button
+            (try_begin),
+                (gt,":lord",-1),
+                (try_begin),
+                    (eq, ":display_state", 1),
+                    (overlay_set_color, ":id_btn", 0),
+                (else_try),
+                    (overlay_set_color, ":id_btn", 0x0066FF),
+                (try_end),
+            (try_end),
+            
+            #update unassigned chkbox
+            (try_begin),
+                (lt, ":lord", 0),
+                (try_begin),
+                    (eq, ":display_state", 1),
+                    (assign, ":display_state", 0),
+                (else_try),
+                    (assign, ":display_state", 1),
+                (try_end),
+                (overlay_set_val, "$chk_unassigned", ":display_state"),
+            (try_end),
+
+        (try_end),
+
+        #click on center+shift, assigned
+        (try_begin),
+
+            (ge, ":object", "$first_center_btn"),
+            (le, ":object", "$last_center_btn"),   
+            (this_or_next| key_is_down, key_right_shift), (key_is_down, key_left_shift),
+
+            (call_script, "script_search_fiefs_tmp", 0, ":object"),    (troop_get_slot, ":indx0", "trp_temp_array_c", 0),   
+            (store_add, ":indx1", ":indx0", 4),    (troop_get_slot, ":lord", "trp_temp_array_a", ":indx1"),
+            (store_add, ":indx1", ":indx0", 5),    (troop_get_slot, ":selected", "trp_temp_array_a", ":indx1"),
+            
+            (eq, ":selected", 1), (gt, ":lord", -1),
+            
+            (call_script, "script_toggle_controls_worldmap", 0),
+            (overlay_set_display, "$lbl_name_color_lord", 1),
+            (overlay_set_display, "$slider_color", 1),
+            (overlay_set_display, "$btn_endcolor", 1),
+            (call_script, "script_search_lords_tmp", 0, ":lord"), (troop_get_slot, ":indx0", "trp_temp_array_c", 0),   
+            (store_add, ":indx1", ":indx0", 1),    (troop_get_slot, ":color_lord", "trp_temp_array_b", ":indx1"),
+            #init color controls
+            (troop_get_slot, ":color_lord", "trp_temp_array_d", ":lord"),
+            (str_store_troop_name, s0, ":lord"),
+            (overlay_set_text, "$lbl_name_color_lord", s0),
+            (overlay_set_val, "$slider_color", ":color_lord"),
+            (assign, "$id_color_lord", ":lord"),
+        
+        (try_end),
+        
+        #click on button end color edit
+        (try_begin),
+            (eq, ":object", "$btn_endcolor"),
+            (call_script, "script_toggle_controls_worldmap", 1),
+            (overlay_set_display, "$lbl_name_color_lord", 0),
+            (overlay_set_display, "$slider_color", 0),
+            (overlay_set_display, "$btn_endcolor", 0),
+            
+        (try_end),
+        
+        #move color slider
+        (try_begin),
+            (eq, ":object", "$slider_color"),
+            
+            (call_script, "script_search_fiefs_tmp", 4, "$id_color_lord"),
+            (try_for_range, ":i", 0, reg0),
+                (troop_get_slot, ":indx0", "trp_temp_array_c", ":i"),
+                (troop_get_slot, ":lord_center", "trp_temp_array_a", ":indx0"),
+                (overlay_set_color, ":lord_center", ":value"),
+            (try_end),
+            
+            (call_script, "script_search_lords_tmp", 0, "$id_color_lord"), (troop_get_slot, ":indx0", "trp_temp_array_c", 0),
+            (store_add, ":indx1", ":indx0", 1), (troop_set_slot, "trp_temp_array_b", ":indx1", ":value"),
+
+        (try_end),
+
+        #Click on lord's list
+        (try_begin),
+        
+            (ge, ":object", "$first_lord_btn"),
+            (le, ":object", "$last_lord_btn"),
+            
+            (call_script, "script_search_lords_tmp", 2, ":object"),
+            (troop_get_slot, ":indx0", "trp_temp_array_c", 0), (troop_get_slot, ":id_lord", "trp_temp_array_b", ":indx0"),
+            (store_add, ":indx1", ":indx0", 1), (troop_get_slot, ":color_lord", "trp_temp_array_b", ":indx1"),
+
+            (try_begin),
+                (call_script, "script_search_fiefs_tmp", 4, ":id_lord"),
+                (gt, reg0, 0),
+                (troop_get_slot, ":indx0", "trp_temp_array_c", 0),           
+                (store_add, ":indx1", ":indx0", 5),
+                (troop_get_slot, ":selected", "trp_temp_array_a", ":indx1"),
+                
+                (try_for_range, ":i", 0, reg0),
+                    (troop_get_slot, ":indx0", "trp_temp_array_c", ":i"),
+                    (troop_get_slot, ":id_overlay_center", "trp_temp_array_a", ":indx0"),
+                    (try_begin),
+                        (eq, ":selected", 0),
+                        (overlay_set_color, ":object", 0x0066FF),   
+                        (overlay_set_color, ":id_overlay_center", ":color_lord"),
+                        (store_add, ":indx1", ":indx0", 5),
+                        (troop_set_slot, "trp_temp_array_a", ":indx1", 1),
+                    (else_try),
+                        (overlay_set_color, ":object", 0),   
+                        (overlay_set_color, ":id_overlay_center", 0),
+                        (store_add, ":indx1", ":indx0", 5),
+                        (troop_set_slot, "trp_temp_array_a", ":indx1", 0),
+                    (try_end),
+                (try_end),
+            
+            (else_try),
+                (display_message, "@Selected lord has no fiefs."),
+            (try_end),
+            
+        (try_end),
+        
+        #Click show unassigned
+        (try_begin),
+        
+            (eq, ":object", "$chk_unassigned"),
+            
+            (try_begin),
+                (eq, ":value", 1),   
+                (assign, ":color", 0xFFFFFF),
+            (else_try),
+                (assign, ":color", 0),
+            (try_end),
+                
+            (call_script, "script_search_fiefs_tmp", 4, -1),
+            
+            (try_for_range, ":i", 0, reg0),
+                (troop_get_slot, ":indx0", "trp_temp_array_c", ":i"),
+                (troop_get_slot, ":id_overlay_center", "trp_temp_array_a", ":indx0"),
+                (overlay_set_color, ":id_overlay_center", ":color"),
+                (store_add, ":indx1", ":indx0", 5),
+                (troop_set_slot, "trp_temp_array_a", ":indx1", ":value" ),
+            (try_end),
+        
+        (try_end),
+        
+        #Click show all toggle
+        (try_begin),
+
+            (eq, ":object", "$g_btn_show_toggle"),
+
+            #update centers
+            (try_for_range, ":i", 0, "$N_Centers"),
+                (store_mul, ":indx0", ":i", 6),
+                (troop_get_slot, ":center_overlay", "trp_temp_array_a", ":indx0"),
+                (store_add, ":indx1", ":indx0", 4),
+                (troop_get_slot, ":lord", "trp_temp_array_a", ":indx1"),
+                (store_add, ":indx_display_state", ":indx0", 5),
+                
+                (try_begin),
+                    (eq, ":lord", -1),
+                    (assign, ":color", 0xFFFFFF),
+                (else_try),
+                    (call_script, "script_search_lords_tmp", 0, ":lord"),
+                    (troop_get_slot, ":indx0", "trp_temp_array_c", 0),
+                    (store_add, ":indx1", ":indx0", 1),
+                    (troop_get_slot, ":color", "trp_temp_array_b", ":indx1"),                   
+                (try_end),
+                
+                (try_begin),
+                    (eq, "$show_toggle", 1),
+                    (overlay_set_color, ":center_overlay", ":color"),
+                    (troop_set_slot, "trp_temp_array_a", ":indx_display_state", 1),
+                    
+                (else_try),
+                    (overlay_set_color, ":center_overlay", 0),
+                    (troop_set_slot, "trp_temp_array_a", ":indx_display_state", 0),
+                (try_end),
+                
+            (try_end),
+            
+            #update lord buttons, checkbox unassigned
+            (try_begin),
+                (eq, "$show_toggle", 1),
+                (assign, "$show_toggle", 0),
+                (assign, ":color_button", 0x0066FF),
+                (overlay_set_val, "$chk_unassigned", 1),
+            (else_try),
+                (assign, "$show_toggle", 1),
+                (assign, ":color_button", 0),
+                (overlay_set_val, "$chk_unassigned", 0),
+            (try_end),
+
+            (try_for_range, ":btn_lord", "$first_lord_btn", "$last_lord_btn"),
+                    (overlay_set_color, ":btn_lord", ":color_button"),
+            (try_end),
+            (val_add,":btn_lord", 1), (overlay_set_color, ":btn_lord", ":color_button"),
+
+        (try_end),           
+
+        #change on faction show combo
+        (try_begin),
+        
+            (eq, ":object", "$factions"),
+
+            #set all lord buttons to unselected
+            (store_add, ":limit",  "$last_lord_btn", 1),
+            (try_for_range, ":i", "$first_lord_btn", ":limit"),
+                (overlay_set_color, ":i", 0),
+            (try_end),
+
+            #paint centers of chosen faction
+            (store_add, ":fac_id", "fac_player_supporters_faction", ":value"),
+            
+            (try_for_range, ":i", 0, "$N_Centers"),
+                (store_mul, ":indx0", ":i", 6),
+                (troop_get_slot, ":center_overlay", "trp_temp_array_a", ":indx0"),
+                (store_add, ":indx1", ":indx0", 1),
+                (troop_get_slot, ":id_center", "trp_temp_array_a", ":indx1"),
+                (store_add, ":indx1", ":indx0", 4),
+                (troop_get_slot, ":lord", "trp_temp_array_a", ":indx1"),
+                (store_faction_of_party, ":fac", ":id_center"),
+                (store_add, ":indx_display_state", ":indx0", 5),
+                
+                (try_begin),
+                    (eq, ":fac_id", ":fac"),
+                    (call_script, "script_search_lords_tmp", 0, ":lord"),
+                    #if no lord, white
+                    (try_begin),
+                        (eq, reg0, 0),
+                        (assign, ":color", 0xFFFFFF),
+                    (else_try), #lord color and button lord as marked
+                        (troop_get_slot, ":indx0", "trp_temp_array_c", 0),
+                        (store_add, ":indx1", ":indx0", 1),
+                        (troop_get_slot, ":color", "trp_temp_array_b", ":indx1"),
+                        (store_add, ":indx1", ":indx0", 2),
+                        (troop_get_slot, ":btn_lord", "trp_temp_array_b", ":indx1"),
+                        (overlay_set_color, ":btn_lord", 0x0066FF),
+                    (try_end),
+                    
+                    (overlay_set_color, ":center_overlay", ":color"),
+                    (troop_set_slot, "trp_temp_array_a", ":indx_display_state", 1),
+
+                (else_try),
+                    (overlay_set_color, ":center_overlay", 0),
+                    (troop_set_slot, "trp_temp_array_a", ":indx_display_state", 0),
+                (try_end),
+                
+            (try_end),
+        (try_end),
+
+        #click on center + control
+        (try_begin),
+            (eq, "$gShowFeudalMap", 1), #assign only if dialog with minister first
+            (ge, ":object", "$first_center_btn"),
+            (le, ":object", "$last_center_btn"),   
+            (this_or_next| key_is_down, key_right_control), (key_is_down, key_left_control),
+            
+            (call_script, "script_search_fiefs_tmp", 0, ":object"),
+            (gt, reg0, 0),
+            (troop_get_slot, ":indx0", "trp_temp_array_c", 0),
+            (store_add, ":indx1", ":indx0", 5), (troop_get_slot, ":display_state", "trp_temp_array_a", ":indx1"),
+            (eq, ":display_state", 1),
+            (store_add, ":indx1", ":indx0", 4), (troop_get_slot, ":lord", "trp_temp_array_a", ":indx1"),
+            (this_or_next | eq, ":lord", -1), (eq, ":lord", 0), #assign only unassigned or player owned
+            
+            (store_add, ":indx1", ":indx0", 1), (troop_get_slot, "$fief_selected", "trp_temp_array_a", ":indx1"),
+            
+            (try_begin),
+                (eq, "$g_player_court", "$fief_selected"),
+                (display_message, "@Can't grant capital fief!"),
+            (else_try),
+                (try_begin),
+                    (try_begin),
+                        (store_faction_of_party, reg0, "$fief_selected"),
+                        (neq, reg0, "fac_player_supporters_faction"),
+                        (display_message, "@Unassigned fief not part of your kingdom!"),
+                    (else_try),
+                        (call_script, "script_toggle_controls_worldmap", 0),
+                        (overlay_set_display, "$lbl_name_grant_lord", 1),
+                        (overlay_set_display, "$cbo_grant", 1),   
+                        (overlay_set_val, "$cbo_grant",  "$last_indx_cbogrant"),
+                        
+                    (try_end),
+                (try_end),
+            (try_end),
+            
+        (try_end),
+        
+        
+        #change on grant combo
+        (try_begin),
+            
+            (eq, ":object", "$cbo_grant"),
+            (call_script, "script_search_lords_tmp" , 3, ":value"),
+            
+            (try_begin),
+                (eq, reg0, 0),    #case None
+            (else_try),
+            
+                (troop_get_slot, ":indx0", "trp_temp_array_c", 0),
+                (store_add, ":indx1", ":indx0", 0), (troop_get_slot, ":lord", "trp_temp_array_b", ":indx1"),
+
+                (call_script, "script_give_center_to_lord", "$fief_selected", ":lord", 0),
+                
+                #if fief was on agenda, remove from agenda
+                (faction_get_slot, ":fief_on_agenda", "fac_player_supporters_faction", slot_faction_political_issue),
+                (try_begin),
+                    (eq, ":fief_on_agenda", "$fief_selected"),
+                    (faction_set_slot, "fac_player_supporters_faction", slot_faction_political_issue, -1),
+                (try_end),
+
+                (call_script, "script_add_log_entry", logent_castle_given_to_lord_by_player, "trp_player", "$fief_selected", ":lord", "$g_encountered_party_faction"),
+
+                #update lists fief & lords, overlays center and label name
+                (call_script, "script_search_fiefs_tmp" , 1, "$fief_selected"),
+                (troop_get_slot, ":indx0", "trp_temp_array_c", 0),
+                (store_add, ":indx1", ":indx0", 4),
+                (troop_set_slot, "trp_temp_array_a", ":indx1", ":lord"),
+                
+                (troop_get_slot, ":center_overlay", "trp_temp_array_a", ":indx0"),
+                
+                (store_add, ":indx1", ":indx0", 3),
+                (troop_get_slot, ":id_overlay_name", "trp_temp_array_a", ":indx1"),           
+                
+                (call_script, "script_search_lords_tmp" , 0, ":lord"),
+                (troop_get_slot, ":indx0", "trp_temp_array_c", 0),
+                (store_add, ":indx1", ":indx0", 1),
+                (troop_get_slot, ":color", "trp_temp_array_b", ":indx1"),
+                
+                (str_store_troop_name, s0, ":lord"),
+                
+                (overlay_set_text, ":id_overlay_name", s0),
+                (overlay_set_color, ":center_overlay", ":color"),
+                
+                (str_store_party_name, s1, "$fief_selected"),
+                (display_message, "@{s1} is granted to {s0}.", 0xFF00FF),
+
+            (try_end),
+            
+            (call_script, "script_toggle_controls_worldmap", 1),
+            (overlay_set_display, "$lbl_name_grant_lord", 0),
+            (overlay_set_display, "$cbo_grant", 0),
+            
+        (try_end),
+
+        
+        #Click on help   
+        (try_begin),
+            (eq, ":object", "$g_help"),
+            
+            (dialog_box, "@Hover mouse over settlement to view basic info. Click to toggle view of all fiefs assigned to settlement owner.^^To change colors, click+shift on a colorized settlement.^^To assign fief, click+control on settlement (Only if coming from dialog with minister).^^By: Arris Rumi, 2021.", "@Feudal Map"),
+            
+        (try_end),
+        
+      ]),
+
+  ]),
 
 
 

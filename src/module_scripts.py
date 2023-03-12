@@ -66066,5 +66066,89 @@ Born at {s43}^Contact in {s44} of the {s45}.^\
   (troop_set_slot, "trp_kingdom_6_pretender", 404, 0),
   ]),
 	 
-	 
+	      # Arris
+     # Used in world map presentation.
+     # Searches trp_temp_array_a, returns indexes of fiefs that match search criteria in trp_temp_array_c, number of indexes in reg0.
+  
+     ("search_fiefs_tmp",
+        [
+      
+          (store_script_param, ":search_field", 1),
+          (store_script_param, ":search_value", 2),
+        
+          (try_for_range, ":i", 0, 1000),
+            (troop_set_slot, "trp_temp_array_c", ":i", -1),
+          (try_end),
+        
+          (assign, reg0, 0),
+          (assign, ":indx_c", 0),
+        
+          (try_for_range, ":i", 0, "$N_Centers"),
+                (store_mul, ":indx", ":i", 6),
+                (store_add, ":indx1", ":indx", ":search_field"),
+                (troop_slot_eq, "trp_temp_array_a", ":indx1", ":search_value"),
+                (troop_set_slot, "trp_temp_array_c", ":indx_c", ":indx"),
+                (val_add, ":indx_c", 1),
+          (try_end),
+        
+          (assign, reg0, ":indx_c"),
+      
+        ]
+    ),
+  
+     #Arris
+     # Used in world map presentation.
+     # Searches trp_temp_array_b, returns indexes of lords that match search criteria in trp_temp_array_c, number of indexes in reg0.
+  
+     ("search_lords_tmp",
+        [
+      
+          (store_script_param, ":search_field", 1),
+          (store_script_param, ":search_value", 2),
+        
+          (try_for_range, ":i", 0, 1000),
+            (troop_set_slot, "trp_temp_array_c", ":i", -1),
+          (try_end),
+        
+          (assign, reg0, 0),
+          (assign, ":indx_c", 0),
+        
+          (try_for_range, ":i", 0, "$N_Lords"),
+                (store_mul, ":indx", ":i", 4),
+                (store_add, ":indx1", ":indx", ":search_field"),
+                (troop_slot_eq, "trp_temp_array_b", ":indx1", ":search_value"),
+                (troop_set_slot, "trp_temp_array_c", ":indx_c", ":indx"),
+                (val_add, ":indx_c", 1),
+          (try_end),
+        
+          (assign, reg0, ":indx_c"),
+      
+        ]
+    ), 
+  
+    # Arris
+    # Auxilliary script for world map presentation. Sets visibility of some controls
+  
+    ("toggle_controls_worldmap",
+        [
+            (store_script_param, ":toggle", 1),
+
+            (try_begin),
+                (eq, ":toggle", 0),
+                (position_set_x, pos1, 1000), (position_set_y, pos1, 260),
+                (overlay_set_position, "$list_lords", pos1),
+            (else_try),
+                (position_set_x, pos1, 750), (position_set_y, pos1, 260),
+                (overlay_set_position, "$list_lords", pos1),
+            (try_end),
+          
+            (overlay_set_display, "$chk_unassigned", ":toggle"),
+            (overlay_set_display, "$chk_unassigned_lbl", ":toggle"),
+            (overlay_set_display, "$g_btn_show_toggle", ":toggle"),
+            (overlay_set_display, "$show_faction_lbl", ":toggle"),
+            (overlay_set_display, "$factions", ":toggle"),
+          
+        ]
+  
+    ),
 ]

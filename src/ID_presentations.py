@@ -56,3 +56,4 @@ prsnt_set_vassal_title = 54
 prsnt_custom_lord_notes = 55
 prsnt_kaos_political_options = 56
 prsnt_change_all_factions_color = 57
+prsnt_world_map = 58

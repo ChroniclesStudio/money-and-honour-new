@@ -693,5 +693,8 @@ script_get_dest_color_from_rgb = 691
 script_convert_rgb_code_to_html_code = 692
 script_convert_slot_no_to_color = 693
 script_set_civilian_items = 694
+script_search_fiefs_tmp = 695
+script_search_lords_tmp = 696
+script_toggle_controls_worldmap = 697
 
 

@@ -3882,6 +3882,24 @@ Please, take this as some small repayment for your noble deed.", "rescue_prisone
 
 ]],
 
+#Arris
+  [anyone|plyr, "minister_talk",
+  [
+  (is_between, "$g_player_minister", active_npcs_begin, kingdom_ladies_end),
+  ],
+  "I wish to grant feuds to my vassals using the world map.", "minister_map",
+  [
+  ]],
+
+  #Arris
+  [anyone, "minister_map",
+  [ ],
+  "Certainly, my liege. Let me get the world map from the library...", "close_window",
+  [
+      (assign, "$gShowFeudalMap", 1),
+      (change_screen_map),
+  ]],
+
 
 [anyone|plyr,"minister_talk",
 [

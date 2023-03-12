@@ -1,4 +1,4 @@
-1232
+1248
 qstr_Next_Page Next_Page
 qstr_Game_Rules:^ Game_Rules:^
 qstr_0 0
@@ -209,6 +209,21 @@ qstr__ _
 qstr_HTML_code:_{s0} HTML_code:_{s0}
 qstr_Default Default
 qstr_Randomize Randomize
+qstr_Unassigned Unassigned
+qstr_{s0} {s0}
+qstr_Show_unassigned Show_unassigned
+qstr_Show_All/None Show_All/None
+qstr_None2 None2
+qstr_OK OK
+qstr_Show_faction: Show_faction:
+qstr_Grant_fief_to... Grant_fief_to...
+qstr_Help Help
+qstr_Selected_lord_has_no Selected_lord_has_no_fiefs.
+qstr_Can_t_grant_capital_ Can't_grant_capital_fief!
+qstr_Unassigned_fief_not_ Unassigned_fief_not_part_of_your_kingdom!
+qstr_{s1}_is_granted_to_{ {s1}_is_granted_to_{s0}.
+qstr_Hover_mouse_over_set Hover_mouse_over_settlement_to_view_basic_info._Click_to_toggle_view_of_all_fiefs_assigned_to_settlement_owner.^^To_change_colors,_click+shift_on_a_colorized_settlement.^^To_assign_fief,_click+control_on_settlement_(Only_if_coming_from_dialog_with_minister).^^By:_Arris_Rumi,_2021.
+qstr_Feudal_Map Feudal_Map
 qstr_{!}DEBUG_:_Completed {!}DEBUG_:_Completed_faction_troop_assignments,_cheat_mode:_{reg3}
 qstr_{!}ERROR:_Not_enough {!}ERROR:_Not_enough_banners_for_heroes!
 qstr_{!}DEBUG____initial_ {!}DEBUG_--_initial_war/peace_check_begins
@@ -846,6 +861,7 @@ qstr__The_banner_of_your_ _The_banner_of_your_{s11}_{s7}_flies_over_the_town_gat
 qstr__This_town_has_no_ga _This_town_has_no_garrison.
 qstr__You_have_successful _You_have_successfully_sneaked_in.
 qstr_{s13}_A_tournament_w {s13}_A_tournament_will_be_held_here_soon.
+qstr_{reg4}_{s4}_have_jus {reg4}_{s4}_have_just_joined_your_party.
 qstr_{!}DEBUG___Current_t {!}DEBUG_-_Current_town_is_{s3},_but_also_checking_{s4}
 qstr___{reg1}_denars_per_ _({reg1}_denars_per_night)
 qstr_Moreover_you_earn_{r Moreover,_you_earn_{reg8}_denars_from_the_clever_bets_you_placed_on_yourself...

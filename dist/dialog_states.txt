@@ -214,6 +214,7 @@ minister_pretalk
 minister_talk
 center_captured_lord_advice
 combined_political_quests
+minister_map
 minister_cancel_political_quest
 minister_cancel_political_quest_confirm
 minister_diplomatic_kingdoms

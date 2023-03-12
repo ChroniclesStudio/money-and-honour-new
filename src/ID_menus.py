@@ -259,3 +259,7 @@ menu_start_prince_1 = 257
 menu_start_king_1 = 258
 menu_notification_kingdom_restoration = 259
 menu_civilian_info = 260
+menu_rejected_by_nobles = 261
+menu_rejected_by_nobles_no_place = 262
+menu_rejected_by_nobles_no_money = 263
+menu_got_nobles = 264
