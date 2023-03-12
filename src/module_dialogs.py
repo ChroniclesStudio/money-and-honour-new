@@ -26484,6 +26484,26 @@ Hand over my {reg19} denars, if you please, and end our business together.", "lo
   [anyone,"lord_suggest_join_faction", [],
    "{!}Alright then.", "lord_give_oath_5",[]],
 
+   [anyone|plyr,"lord_suggest_action", [(faction_slot_eq, "$g_talk_troop_faction", slot_faction_leader, "$g_talk_troop"),],
+   "{!}CHEAT: Make peace with me.", "lord_pretalk",[
+     (call_script, "script_diplomacy_start_peace_between_kingdoms", "$g_talk_troop_faction", "$players_kingdom", 1),
+      	 (store_relation, ":players_kingdom_relation", "$g_talk_troop_faction", "$players_kingdom"),
+	 
+     (try_begin),
+       (this_or_next|eq, "$players_kingdom", 0),
+		(ge, ":players_kingdom_relation", 0),
+       (call_script, "script_set_player_relation_with_faction", "$g_talk_troop_faction", 0),
+     (else_try),
+       (call_script, "script_diplomacy_start_peace_between_kingdoms", "$g_talk_troop_faction", "$players_kingdom", 1),
+     (try_end),]],
+  [anyone|plyr,"lord_suggest_action", [(faction_slot_eq, "$g_talk_troop_faction", slot_faction_leader, "$g_talk_troop"),],
+   "{!}CHEAT: Make your faction like me.", "lord_pretalk",[
+     (store_relation, ":players_kingdom_relation", "$g_talk_troop_faction", "$players_kingdom"),
+     (val_add,":players_kingdom_relation",20),
+     (val_min,":players_kingdom_relation",100),
+     (call_script, "script_set_player_relation_with_faction", "$g_talk_troop_faction", ":players_kingdom_relation"),
+     ]],
+
   [anyone|plyr,"lord_suggest_action", [],
    "{!}CHEAT: I want to know your leaded party ID.", "lord_suggest_learn_party_id",[]],
   [anyone,"lord_suggest_learn_party_id", [
@@ -29964,6 +29984,9 @@ I suppose there are plenty of bounty hunters around to get the job done . . .", 
 							 (ge, "$g_encountered_party_relation", 0),
   ],
    "I want to know the location of someone.", "lord_talk_ask_location",[]],
+
+  [anyone|plyr,"lady_talk", [(ge, "$cheat_mode", 1),],
+   "{!}CHEAT: Like me.", "lady_pretalk",[(call_script,"script_change_player_relation_with_troop","$g_talk_troop",20)]],
 
 
 ##### TODO: QUESTS COMMENT OUT BEGIN
