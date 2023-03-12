@@ -2200,7 +2200,6 @@ Overall, {s30}.", "pretender_progress_2",[]],
 (faction_slot_eq,  "$players_kingdom", slot_faction_marshall, "trp_player"),
 ], "As marshal, I wish you to send a message to the vassals of the realm", "member_direct_campaign",[]],
 
-
 [anyone|plyr,"member_talk", [],
 
 "Let me see your equipment.", "member_trade",[]],
@@ -13481,7 +13480,6 @@ I hope I'll see you again soon.", "close_window", []],
             (call_script, "script_add_log_entry", logent_player_claims_throne_2, "trp_player", 0, 0, 0),
          (try_end),
          ]],
-
 
 [anyone, "event_triggered", [
  (store_conversation_troop, "$map_talk_troop"),
@@ -25947,36 +25945,60 @@ Moreover, I will have special tasks for you from time to time, as may some of my
 Serve, fight, and honour your oaths. These things will take you far, if you've a mind for promotion.\
 May God grant us long lives and many victories to toast in my hall!", "close_window",[(assign, "$g_leave_encounter",1)]],
 
-[anyone,"lord_ask_leave_service", [(ge, "$g_talk_troop_relation", 1)], "Hrm.\
-Has your oath become burdensome, {playername}? It is unusual to request release from homage,\
-but in respect of your fine service, I will not hold you if you truly wish to end it.\
-Though you would be sorely missed.", "lord_ask_leave_service_verify",[]],
-[anyone,"lord_ask_leave_service", [], "Release from homage? Hmm, perhaps it would be for the best...\
-However, {playername}, you must be sure that release is what you desire. This is not a thing done lightly.", "lord_ask_leave_service_verify",[]],
+#Druidic Modifications Begin (Secession Mod)
+  [anyone,"lord_ask_leave_service", [(ge, "$g_talk_troop_relation", 1)], "Hrm.\
+ Has your oath become burdensome, {playername}? It is unusual to request release from homage,\
+ but in respect of your fine service, I will not hold you if you truly wish to end it.\
+ Though you would be sorely missed.", "lord_ask_leave_service_verify",[]],
+  [anyone,"lord_ask_leave_service", [], "Release from homage? Hmm, perhaps it would be for the best...\
+ However, {playername}, you must be sure that release is what you desire. This is not a thing done lightly.", "lord_ask_leave_service_verify",[]],
 
-[anyone|plyr ,"lord_ask_leave_service_verify", [], "It is something I must do, {s65}.", "lord_ask_leave_service_2",[]],
-[anyone|plyr ,"lord_ask_leave_service_verify", [], "You are right, {s65}. My place is here.", "lord_ask_leave_service_giveup",[]],
+  [anyone|plyr ,"lord_ask_leave_service_verify", [], "It is something I must do, {s65}.", "lord_ask_leave_service_2",[]],
+  [anyone|plyr ,"lord_ask_leave_service_verify", [], "You are right, {s65}. My place is here.", "lord_ask_leave_service_giveup",[]],
+  [anyone,"lord_ask_leave_service_giveup", [], "I am pleased to hear it, {playername}.\
+ I hope you'll banish such unworthy thoughts from your mind from now on.", "lord_pretalk",[]],
 
-[anyone,"lord_ask_leave_service_giveup", [], "I am pleased to hear it, {playername}.\
-I hope you'll banish such unworthy thoughts from your mind from now on.", "lord_pretalk",[]],
+#Default Leaving Dialog with Secede Option
+  [anyone,"lord_ask_leave_service_2", [], "Then you are sure? Also, be aware that if you leave my services, you will be surrendering to me all the fiefs which you hold in my name.", "lord_ask_leave_service_verify_again",[]],
+  [anyone|plyr ,"lord_ask_leave_service_verify_again", [], "Yes, {s65}.", "lord_ask_leave_service_3",[]],
+  [anyone|plyr ,"lord_ask_leave_service_verify_again", [], "Of course not, {s65}. I am ever your loyal vassal.", "lord_ask_leave_service_giveup",[]],
+  [anyone|plyr ,"lord_ask_leave_service_verify_again", [], "I will leave your realm, but my fiefs are coming with me.", "lord_declare_secede",[]], #Secession Option
+#Secession Dialog Stage 1
+  [anyone,"lord_declare_secede", [], "How dare you, {playername}! You do realize that what you speak of is illegal in my realm,\
+ and that this is equivalent to an act of rebellion against me? Surely I misheard you, perhaps?", "lord_declare_secede_2",[]],
+  [anyone|plyr ,"lord_declare_secede_2", [], "You did not mishear. I stand by my words, and I am seceding.", "lord_declare_secede_3",[]],
+  [anyone|plyr ,"lord_declare_secede_2", [], "Um... yes you did mishear me, my apologies.", "lord_declare_secede_giveup",[]],
+#Secession Giveup
+  [anyone,"lord_declare_secede_giveup", [], "Good, {playername}...\
+ I had worried you would make a gravely stupid move, but I am glad I misheard you. Let us change topic now.", "lord_pretalk",[]],
+#Secession Dialog Stage 2
+  [anyone,"lord_declare_secede_3", [], "Then it is war, {playername}.\
+ I hope you rethink your actions when the lands you think you own are burned to the ground.\
+ Get out of my sight now, and be glad I'm giving you a short head start so you can go to your ill-gotten lands.", "lord_declare_secede_end",
+   [
+        (call_script, "script_add_log_entry", logent_renounced_allegiance,   "trp_player",  -1, "$g_talk_troop", "$g_talk_troop_faction"), #Try commenting and see where this goes.
+        (call_script, "script_player_leave_faction_secede", 0),
+   ]],
+  #Secession Ending Dialog Bits  
+  [anyone|plyr ,"lord_declare_secede_end", [], "Regardless of our stance now, it was an honor to have fought with you.", "close_window",[]],
+  [anyone|plyr ,"lord_declare_secede_end", [], "It was in response, not in provocation.", "close_window",[]],
+  [anyone|plyr ,"lord_declare_secede_end", [], "Oh there will be burning, {s65}...", "close_window",[]],
 
-[anyone,"lord_ask_leave_service_2", [], "Then you are sure? Also, be aware that if you leave my services, you will be surrendering to me all the fiefs which you hold in my name.", "lord_ask_leave_service_verify_again",[]],
-[anyone|plyr ,"lord_ask_leave_service_verify_again", [], "Yes, {s65}.", "lord_ask_leave_service_3",[]],
-[anyone|plyr ,"lord_ask_leave_service_verify_again", [], "Of course not, {s65}. I am ever your loyal vassal.", "lord_ask_leave_service_giveup",[]],
+   
+  [anyone,"lord_ask_leave_service_3", [], "As you wish. I hereby declare your oaths to be null and void.\
+ You will no longer hold land or titles in my name, and you are released from your duties to my house.\
+ You are free, {playername}.", "lord_ask_leave_service_end",
+   [
+        (call_script, "script_add_log_entry", logent_renounced_allegiance,   "trp_player",  -1, "$g_talk_troop", "$g_talk_troop_faction"),
+        (call_script, "script_player_leave_faction", 1), 
+    ]],
 
-[anyone,"lord_ask_leave_service_3", [], "As you wish. I hereby declare your oaths to be null and void.\
-You will no longer hold land or titles in my name, and you are released from your duties to my house.\
-You are free, {playername}.", "lord_ask_leave_service_end",
-[
-     (call_script, "script_add_log_entry", logent_renounced_allegiance,   "trp_player",  -1, "$g_talk_troop", "$g_talk_troop_faction"),
-     (call_script, "script_player_leave_faction", 1), #1 means give back fiefs
- ]],
-
-[anyone|plyr ,"lord_ask_leave_service_end", [], "Thank you, sir. It was an honour to serve you..", "lord_ask_leave_service_end_2",[]],
-[anyone|plyr ,"lord_ask_leave_service_end", [], "My thanks. It feels good to be {a free man/free} once again.", "lord_ask_leave_service_end_2",[]],
-
-[anyone ,"lord_ask_leave_service_end_2", [], "Farewell then, {playername}, and good luck go with you.", "close_window",
-[(assign, "$g_leave_encounter", 1)]],
+  [anyone|plyr ,"lord_ask_leave_service_end", [], "Thank you, sir. It was an honour to serve you..", "lord_ask_leave_service_end_2",[]],
+  [anyone|plyr ,"lord_ask_leave_service_end", [], "My thanks. It feels good to be {a free man/free} once again.", "lord_ask_leave_service_end_2",[]],
+#Default King Response if Player Peacefully Leaves
+  [anyone ,"lord_ask_leave_service_end_2", [], "Farewell then, {playername}, and good luck go with you.", "close_window",
+   [(assign, "$g_leave_encounter", 1)]],
+#Druidic Modifications End (Secession Mod)
 
 #Active quests
 ##### TODO: QUESTS COMMENT OUT BEGIN

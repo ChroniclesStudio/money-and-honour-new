@@ -425,8 +425,8 @@ qstr_{!}DEBUG___{s4}_factio {!}DEBUG_-_{s4}_faction_changed_by_marriage,_case_1
 qstr_{!}_DEBUG___{s4}_cha {!}_DEBUG_-_{s4}_changed_by_player's_defection
 qstr_{!}DEBUG___{s4}_faction {!}DEBUG_-_{s4}_faction_changed_by_marriage,_case_3
 qstr_Your_soldiers_patroll Your_soldiers_patrolling_{s6}_disbanded_because_you_left_the_faction!
-qstr_{s1}_Rebels {s1}_Rebels
 qstr_{!}DEBUG___{s4}_faction_ {!}DEBUG_-_{s4}_faction_changed_by_marriage,_case_2
+qstr_{s1}_Rebels {s1}_Rebels
 qstr_Given_by:_{s62} Given_by:_{s62}
 qstr_Given_on:_{s60} Given_on:_{s60}
 qstr_You_have_{reg0}_days You_have_{reg0}_days_to_finish_this_quest.

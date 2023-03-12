@@ -878,6 +878,11 @@ lord_ask_leave_service_2
 lord_ask_leave_service_giveup
 lord_ask_leave_service_verify_again
 lord_ask_leave_service_3
+lord_declare_secede
+lord_declare_secede_2
+lord_declare_secede_3
+lord_declare_secede_giveup
+lord_declare_secede_end
 lord_ask_leave_service_end
 lord_ask_leave_service_end_2
 lord_active_mission_2

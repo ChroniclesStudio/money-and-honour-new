@@ -5577,6 +5577,7 @@ scripts = [
 				(try_end),
 			(else_try),
 
+
 				(troop_slot_ge, ":companion", slot_troop_current_mission, npc_mission_peace_request),
 				(neg|troop_slot_ge, ":companion", slot_troop_current_mission, 8),
 
@@ -35443,6 +35444,90 @@ scripts = [
       (try_end),
         ##diplomacy end
     ]),
+
+    #Druidic Modifications Begin (Secession Mod)
+  ("player_leave_faction_secede",
+    [
+      (call_script, "script_check_and_finish_active_army_quests_for_faction", "$players_kingdom"),
+      (assign, ":old_kingdom", "$players_kingdom"),
+      (assign, ":old_has_homage", "$player_has_homage"),
+      (assign, "$players_kingdom", 0),
+      (assign, "$player_has_homage", 0),
+        (try_for_range, ":cur_center", centers_begin, centers_end),
+          (party_slot_eq, ":cur_center", slot_town_lord, "trp_player"), #If center belongs to a player/slot filled by player
+          (call_script, "script_give_center_to_faction", ":cur_center", "fac_player_supporters_faction"), #Self-explanatory
+          (party_set_slot, ":cur_center", slot_town_lord, "trp_player"), #Registering that the player now fills the slot of lord.
+          (troop_get_slot, ":cur_banner", "trp_player", slot_troop_banner_scene_prop), #If banner is taken by player?
+          (gt, ":cur_banner", 0), #If there is a banner at the city?
+          (val_sub, ":cur_banner", banner_scene_props_begin),
+          (val_add, ":cur_banner", banner_map_icons_begin),
+          (party_set_banner_icon, ":cur_center", ":cur_banner"),                    
+        (try_end),
+        
+        (try_for_range, ":cur_center", villages_begin, villages_end),
+          (party_get_slot, ":cur_bound_center", ":cur_center", slot_village_bound_center), #Checks slot, and who owns it.
+          (party_slot_eq, ":cur_center", slot_town_lord, "trp_player"),
+          (neg|party_slot_eq, ":cur_bound_center", slot_town_lord, "trp_player"), #If a center doesn't belong to the player (Belongs to the original kingdom)...
+          (call_script, "script_give_center_to_faction", ":cur_center", ":old_kingdom"), #... It remains with the original kingdom. For now. >:D
+        (try_end),
+      
+        (is_between, ":old_kingdom", kingdoms_begin, kingdoms_end),
+        (neq, ":old_kingdom", "fac_player_supporters_faction"), #Old kingdom isn't the player supporters.
+        (store_relation, ":reln", "fac_player_supporters_faction", ":old_kingdom"), #Self-explanatory
+        (store_sub, ":req_dif", -40, ":reln"), #Value of how badly the relation drops. Same as if you renounced oath in vanilla.
+        (call_script, "script_change_player_relation_with_faction", ":old_kingdom", ":req_dif"), #Self-explanatory
+#      (try_end),
+      
+      (try_begin),
+        (eq, ":old_has_homage", 1),
+        (faction_get_slot, ":faction_leader", ":old_kingdom", slot_faction_leader),
+        (call_script, "script_change_player_relation_with_troop", ":faction_leader", -40),
+      (try_end),
+#Spouse changes faction (If any spouse)      
+      (try_begin), #
+        (troop_get_slot, ":spouse", "trp_player", slot_troop_spouse),
+        (is_between, ":spouse", kingdom_ladies_begin, kingdom_ladies_end),
+        #Sub-if-then
+        (try_begin),
+            (ge, "$cheat_mode", 1),
+            (str_store_troop_name, s4, ":spouse"),
+            (display_message, "@{!}DEBUG - {s4} faction changed by marriage, case 3"), 
+        (try_end),
+        #Sub-if-then end
+        
+        (troop_set_faction, ":spouse", "fac_player_supporters_faction"),
+      (try_end),
+# Start a war between Secessionist and Original Kingdom (Automatically happens, due to "renouncing")
+#        (assign, "$player_secedes_from_kingdom", ":former_kingdom"), # originally ":original_kingdom"
+#        (assign, "$players_oath_renounced_given_center", 0),
+#        (store_current_hours, "$players_oath_renounced_begin_time"),
+#        
+#        (try_for_range, ":cur_center", walled_centers_begin, walled_centers_end),
+#          (store_faction_of_party, ":cur_center_faction", ":cur_center"),
+#          (party_set_slot, ":cur_center", slot_center_faction_when_oath_renounced, ":cur_center_faction"),
+#        (try_end),
+#        (party_set_slot, "$g_center_to_give_to_player", slot_center_faction_when_oath_renounced, "$player_secedes_from_kingdom"),
+        
+        (store_relation, ":relation", ":old_kingdom", "fac_player_supporters_faction"),
+        (ge, ":relation", 0),
+        (call_script, "script_diplomacy_start_war_between_kingdoms", ":old_kingdom", "fac_player_supporters_faction", 1),
+    
+#Spouse joins player faction by marriage (Need to test reliability with both genders)
+    (try_begin),
+        (troop_get_slot, ":spouse", "trp_player", slot_troop_spouse),
+        (is_between, ":spouse", kingdom_ladies_begin, kingdom_ladies_end),
+        
+        
+        (try_begin),
+            (ge, "$cheat_mode", 1),
+            (str_store_troop_name, s4, ":spouse"),
+            (display_message, "@{!}DEBUG - {s4} faction changed by marriage, case 2"), 
+        (try_end),
+        
+        (troop_set_faction, ":spouse", "fac_player_supporters_faction"),
+    (try_end),
+    ]),
+#Druidic Modifications End (Secession Mod)
 
 
     ("deactivate_player_faction",
